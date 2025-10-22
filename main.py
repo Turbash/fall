@@ -14,6 +14,7 @@ FPS = 60
 PLANET_SIZE=50
 OBJ_SIZE=5
 VEL_SCALE=100
+objects = []
 
 BG = pygame.transform.scale(pygame.image.load("background.jpg"),(WIDTH, HEIGHT))
 PLANET = pygame.transform.scale(pygame.image.load("jupiter.png"),(PLANET_SIZE*2,PLANET_SIZE*2))
@@ -21,6 +22,21 @@ PLANET = pygame.transform.scale(pygame.image.load("jupiter.png"),(PLANET_SIZE*2,
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 BLUE = (0, 0, 255)
+
+class Spacecraft:
+    def __init__(self, x, y, vel_x, vel_y, mass):
+        self.x=x
+        self.y=y
+        self.vel_x=vel_x
+        self.vel_y=vel_y
+        self.mass=mass
+
+    def move(self):
+        self.x += self.vel_x
+        self.y += self.vel_y
+
+    def draw(self):
+        pygame.draw.circle(win, RED, (int(self.x), int(self.y)), OBJ_SIZE)
 
 def main():
     running = True
@@ -35,13 +51,23 @@ def main():
                 running = False
 
             if event.type == pygame.MOUSEBUTTONDOWN:
-                temp_obj_pos = pygame.mouse.get_pos()
-                
+                if temp_obj_pos is not None:
+                    t_x, t_y=temp_obj_pos
+                    obj=Spacecraft(t_x, t_y,1,1,SHIP_MASS)
+                    objects.append(obj)
+                    temp_obj_pos = None
+                else:
+                    temp_obj_pos = pygame.mouse.get_pos()
 
         win.blit(BG, (0, 0))
 
         if temp_obj_pos is not None:
+            pygame.draw.line(win, WHITE, temp_obj_pos, pygame.mouse.get_pos(),2)
             pygame.draw.circle(win, RED, temp_obj_pos, OBJ_SIZE)
+
+        for obj in objects:
+            obj.draw()
+            obj.move()
 
         pygame.display.update()
 
