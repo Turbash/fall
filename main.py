@@ -23,6 +23,15 @@ WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 
+class Planet:
+    def __init__(self,x,y,mass):
+        self.x=x
+        self.y=y
+        self.mass=mass
+
+    def draw(self):
+        win.blit(PLANET,(self.x-PLANET_SIZE,self.y-PLANET_SIZE))
+
 class Spacecraft:
     def __init__(self, x, y, vel_x, vel_y, mass):
         self.x=x
@@ -50,6 +59,7 @@ def main():
     running = True
     clock = pygame.time.Clock()
     temp_obj_pos = None
+    planet=Planet(WIDTH//2,HEIGHT//2,PLANET_MASS)
 
     while(running):
         clock.tick(FPS)
@@ -80,7 +90,8 @@ def main():
             if off_screen:
                 objects.remove(obj)
                 continue
-
+        
+        planet.draw()
         pygame.display.update()
 
     pygame.quit()
