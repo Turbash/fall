@@ -9,7 +9,7 @@ pygame.display.set_caption("Gravitational Slingshot Simulation")
 
 PLANET_MASS = 100
 SHIP_MASS = 5
-G = 5
+G = 90
 FPS = 60
 PLANET_SIZE=50
 OBJ_SIZE=5
@@ -40,7 +40,17 @@ class Spacecraft:
         self.vel_y=vel_y
         self.mass=mass
 
-    def move(self):
+    def move(self, planet=None):
+        distance = math.hypot(self.x-planet.x,self.y-planet.y)
+        force = G * (self.mass * planet.mass)/(distance**2)
+        accleration=force/self.mass
+        angle=math.atan2(planet.y-self.y, planet.x - self.x)
+        accleration_x=accleration*math.cos(angle)
+        accleration_y=accleration*math.sin(angle)
+
+        self.vel_x+=accleration_x
+        self.vel_y+=accleration_y
+
         self.x += self.vel_x
         self.y += self.vel_y
 
@@ -84,7 +94,7 @@ def main():
 
         for obj in objects[:]:
             obj.draw()
-            obj.move()
+            obj.move(planet)
 
             off_screen = obj.x<0 or obj.x>WIDTH or obj.y<0 or obj.y>HEIGHT
             collided=math.hypot(obj.x - planet.x, obj.y - planet.y) <= PLANET_SIZE
