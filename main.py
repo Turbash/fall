@@ -87,7 +87,8 @@ def main():
             obj.move()
 
             off_screen = obj.x<0 or obj.x>WIDTH or obj.y<0 or obj.y>HEIGHT
-            if off_screen:
+            collided=math.hypot(obj.x - planet.x, obj.y - planet.y) <= PLANET_SIZE
+            if off_screen or collided:
                 objects.remove(obj)
                 continue
         
