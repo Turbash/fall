@@ -108,7 +108,8 @@ def create_rays_radial(black_hole, count=72, radius=300):
         dir_y = math.cos(a)
         rays.append(Ray(sx, sy, black_hole, (dir_x, dir_y)))
 
-def geodesic(ray, r_s_m):
+def geodesic(ray, rhs,r_s_m):
+    
     r_px = max(ray.r, 1e-6)
     r_m = r_px * METERS_PER_PIXEL
 
@@ -120,12 +121,45 @@ def geodesic(ray, r_s_m):
 
     angular_acc = -2.0 * ray.dr * ray.dphi / max(ray.r, 1e-6)
 
-    ray.d2r = radial_acc_px
-    ray.d2phi = angular_acc
+    # ray.d2r = radial_acc_px
+    # ray.d2phi = angular_acc
+    dphi = ray.dphi
+    dr = ray.dr
+    rhs.clear()
+    rhs.extend([dr,dphi,radial_acc_px,angular_acc])
+
+def add_state(a,b,factor,out):
+    out.clear()
+    out.extend([a[i]+factor*b[i] for i in range(4)])
+
+def rk4_step(ray, black_hole, dlambda):
+    y0=[ray.r, ray.phi, ray.dr, ray.dphi]
+    k1,k2,k3,k4,temp=[],[],[],[],[]
+
+    geodesic(ray,k1, black_hole.r_si)
+    add_state(y0,k1,dlambda/2.0,temp)
+    r2=Ray(0, 0, black_hole, (0, 0))
+    r2.r, r2.phi, r2.dr, r2.dphi = temp
+    geodesic(r2,k2, black_hole.r_si)
+
+    add_state(y0,k2,dlambda/2.0,temp)
+    r3=Ray(0, 0, black_hole, (0, 0))
+    r3.r, r3.phi, r3.dr, r3.dphi = temp
+    geodesic(r3,k3, black_hole.r_si)
+
+    add_state(y0,k3,dlambda,temp)
+    r4=Ray(0, 0, black_hole, (0, 0))
+    r4.r, r4.phi, r4.dr, r4.dphi = temp
+    geodesic(r4,k4, black_hole.r_si)
+
+    ray.r+=(dlambda/6.0)*(k1[0]+2.0*k2[0]+2.0*k3[0]+k4[0])
+    ray.phi+=(dlambda/6.0)*(k1[1]+2.0*k2[1]+2.0*k3[1]+k4[1])
+    ray.dr+=(dlambda/6.0)*(k1[2]+2.0*k2[2]+2.0*k3[2]+k4[2])
+    ray.dphi+=(dlambda/6.0)*(k1[3]+2.0*k2[3]+2.0*k3[3]+k4[3])
 
 def main():
     bl = BlackHole(WIDTH//2, HEIGHT//2, 1000000*SOLAR_MASS)
-    create_rays_fan(bl)
+    create_rays_horizontal(bl)
     running = True
     clock = pygame.time.Clock()
     while running:
@@ -138,9 +172,9 @@ def main():
         bl.draw()
 
         for ray in rays[:]:
-            geodesic(ray, bl.r_si)
+            rk4_step(ray, bl, 1e-1)
             ray.draw()
-            ray.move(bl,1e-1)
+            ray.move(bl,0)
 
             off_screen = ray.x>WIDTH or ray.x<0 or ray.y<0 or ray.y>HEIGHT
             if off_screen:
