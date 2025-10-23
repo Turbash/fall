@@ -67,9 +67,8 @@ class Ray:
         self.phi+=self.dphi*dlambda
         self.x = black_hole.x + math.cos(self.phi)*self.r
         self.y = black_hole.y + math.sin(self.phi)*self.r
-        print(self.x,self.y)
-        #max length of trail is 100
-
+        # print(self.x,self.y)
+        #max length of trail is 1000
         if len(self.trail)>1000:
             self.trail.pop(0)
         self.trail.append((self.x,self.y))
@@ -83,9 +82,31 @@ class Ray:
             pygame.draw.line(win, color, (int(self.trail[i][0]), int(self.trail[i][1])), (int(self.trail[i][0]), int(self.trail[i][1])))
 
 def create_rays(black_hole):
-    y_pos=[i for i in range(0,HEIGHT,100)]
+    y_pos=[i for i in range(0,30)]
     for y in y_pos:
-        rays.append(Ray(0,y,black_hole,(1.0,0.0)))
+        rays.append(Ray(0,0,black_hole,(1.0,3.0+y*0.25)))
+
+def create_rays_horizontal(black_hole, y_step=10):
+    for y in range(0, HEIGHT, y_step):
+        rays.append(Ray(0, y, black_hole, (1.0, 0.0)))
+
+def create_rays_fan(black_hole, origin_x=0, origin_y=None, count=36, spread=math.pi/2):
+    oy = origin_y if origin_y is not None else HEIGHT // 2
+    center_ang = math.atan2(black_hole.y - oy, black_hole.x - origin_x)
+    for i in range(count):
+        a = center_ang - spread/2 + i * (spread / max(1, count - 1))
+        dx, dy = math.cos(a), math.sin(a)
+        rays.append(Ray(origin_x, oy, black_hole, (dx, dy)))
+
+def create_rays_radial(black_hole, count=72, radius=300):
+    cx, cy = black_hole.x, black_hole.y
+    for i in range(count):
+        a = 2 * math.pi * i / count
+        sx = cx + math.cos(a) * radius
+        sy = cy + math.sin(a) * radius
+        dir_x = -math.sin(a)
+        dir_y = math.cos(a)
+        rays.append(Ray(sx, sy, black_hole, (dir_x, dir_y)))
 
 def geodesic(ray, r_s_m):
     r_px = max(ray.r, 1e-6)
@@ -104,7 +125,7 @@ def geodesic(ray, r_s_m):
 
 def main():
     bl = BlackHole(WIDTH//2, HEIGHT//2, 1000000*SOLAR_MASS)
-    create_rays(bl)
+    create_rays_fan(bl)
     running = True
     clock = pygame.time.Clock()
     while running:
@@ -123,7 +144,7 @@ def main():
 
             off_screen = ray.x>WIDTH or ray.x<0 or ray.y<0 or ray.y>HEIGHT
             if off_screen:
-                print("off_screen")
+                # print("off_screen")
                 rays.remove(ray)
         pygame.display.update()
     
