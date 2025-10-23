@@ -8,11 +8,12 @@ FPS=60
 win = pygame.display.set_mode((WIDTH,HEIGHT))
 pygame.display.set_caption("Black Hole Simulation")
 
-C=299792458
 G=6.67430e-11
 SOLAR_MASS=1.98847e30
 
-METERS_PER_PIXEL = 1e8
+METERS_PER_PIXEL = 5*1e7
+C_PX=299792458.0/METERS_PER_PIXEL
+C_SI=299792458.0
 
 rays=[]
 
@@ -28,14 +29,15 @@ class BlackHole:
         self.x=x
         self.y=y
         self.mass=mass
-        self.r_s=self.schwarzschild_radius()
+        self.r_si=self.schwarzschild_radius()
+        self.r_px=self.r_si/METERS_PER_PIXEL
 
     def schwarzschild_radius(self):
-        self.r_s=2*self.mass*G/(C**2)
-        return self.r_s
+        r_s=2*self.mass*G/(C_SI**2)
+        return r_s    
     
     def draw(self):
-        pygame.draw.circle(win,RED,(int(self.x),int(self.y)),int(self.r_s/METERS_PER_PIXEL))
+        pygame.draw.circle(win,RED,(int(self.x),int(self.y)),int(self.r_px))
         # Show radius on top of black hole
         # font = pygame.font.SysFont("Arial", 24)
         # text = font.render(f"radius: {self.r_s:.16f} metres", True, WHITE)
@@ -45,18 +47,17 @@ class Ray:
     def __init__(self,x,y,black_hole,dir):
         self.x = x
         self.y = y
-        self.velocity = C/METERS_PER_PIXEL
         self.trail = [(x,y)]
         self.dir=dir
         self.r = math.hypot(self.x - black_hole.x, self.y - black_hole.y)
         self.phi = math.atan2(self.y - black_hole.y, self.x - black_hole.x)
-        self.dr = C*math.cos(self.phi)+self.dir[1]*math.sin(self.phi)
-        self.dphi=(-C*math.sin(self.phi)+self.dir[1]*math.cos(self.phi))/self.r
+        self.dr = C_PX*math.cos(self.phi)+self.dir[1]*math.sin(self.phi)
+        self.dphi=(-C_PX*math.sin(self.phi)+self.dir[1]*math.cos(self.phi))/self.r
         self.d2r = 0
         self.d2phi = 0
 
     def move(self,black_hole, dlambda):
-        if self.r < black_hole.r_s / METERS_PER_PIXEL:
+        if self.r < black_hole.r_px:
             # Ray has crossed the event horizon, stop updating
             return
         
@@ -64,8 +65,9 @@ class Ray:
         self.dphi+=self.d2phi*dlambda
         self.r+=self.dr*dlambda
         self.phi+=self.dphi*dlambda
-        self.x += math.cos(self.phi)*self.r
-        self.y += math.sin(self.phi)*self.r
+        self.x = black_hole.x + math.cos(self.phi)*self.r
+        self.y = black_hole.y + math.sin(self.phi)*self.r
+        print(self.x,self.y)
         #max length of trail is 100
 
         if len(self.trail)>1000:
@@ -81,13 +83,24 @@ class Ray:
             pygame.draw.line(win, color, (int(self.trail[i][0]), int(self.trail[i][1])), (int(self.trail[i][0]), int(self.trail[i][1])))
 
 def create_rays(black_hole):
-    y_pos=[i for i in range(0,HEIGHT,10)]
+    y_pos=[i for i in range(0,HEIGHT,100)]
     for y in y_pos:
-        rays.append(Ray(WIDTH//3,y,black_hole,(1,0)))
+        rays.append(Ray(0,y,black_hole,(1.0,0.0)))
 
-def geodesic(ray,r_s):
-    ray.dr+=ray.r*ray.dphi*ray.dphi-(C*C*r_s)/(2.0*ray.r*ray.r)
-    ray.dphi=-2.0*ray.dr*ray.dphi/ray.r
+def geodesic(ray, r_s_m):
+    r_px = max(ray.r, 1e-6)
+    r_m = r_px * METERS_PER_PIXEL
+
+    term_m = (C_SI * C_SI * r_s_m) / (2.0 * r_m * r_m)
+
+    term_px = term_m / METERS_PER_PIXEL
+
+    radial_acc_px = ray.r * (ray.dphi ** 2) - term_px
+
+    angular_acc = -2.0 * ray.dr * ray.dphi / max(ray.r, 1e-6)
+
+    ray.d2r = radial_acc_px
+    ray.d2phi = angular_acc
 
 def main():
     bl = BlackHole(WIDTH//2, HEIGHT//2, 1000000*SOLAR_MASS)
@@ -104,7 +117,7 @@ def main():
         bl.draw()
 
         for ray in rays[:]:
-            geodesic(ray, bl.r_s)
+            geodesic(ray, bl.r_si)
             ray.draw()
             ray.move(bl,1e-1)
 
