@@ -62,7 +62,7 @@ def create_ship(location, mouse):
     m_x,m_y=mouse
     vel_x=m_x-t_x
     vel_y=m_y-t_y
-    obj=Spacecraft(t_x,t_y,vel_x, vel_y,SHIP_MASS)
+    obj=Spacecraft(t_x,t_y,vel_x//3, vel_y//3,SHIP_MASS)
     return obj
 
 def main():
