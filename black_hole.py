@@ -11,7 +11,7 @@ pygame.display.set_caption("Black Hole Simulation")
 G=6.67430e-11
 SOLAR_MASS=1.98847e30
 
-METERS_PER_PIXEL = 5*1e6
+METERS_PER_PIXEL = 1e6
 C_PX=299792458.0/METERS_PER_PIXEL
 C_SI=299792458.0
 
@@ -51,8 +51,11 @@ class Ray:
         self.dir=dir
         self.r = math.hypot(self.x - black_hole.x, self.y - black_hole.y)
         self.phi = math.atan2(self.y - black_hole.y, self.x - black_hole.x)
-        self.dr = C_PX*math.cos(self.phi)+self.dir[1]*math.sin(self.phi)
-        self.dphi=(-C_PX*math.sin(self.phi)+self.dir[1]*math.cos(self.phi))/self.r
+        dx, dy = self.dir
+        mag = math.hypot(dx, dy) or 1.0
+        ux, uy = dx / mag, dy / mag
+        self.dr = C_PX * (ux * math.cos(self.phi) + uy * math.sin(self.phi))
+        self.dphi = (C_PX * (-ux * math.sin(self.phi) + uy * math.cos(self.phi))) / max(self.r, 1e-6)
         self.d2r = 0
         self.d2phi = 0
 
@@ -69,9 +72,10 @@ class Ray:
         self.y = black_hole.y + math.sin(self.phi)*self.r
         # print(self.x,self.y)
         #max length of trail is 1000
-        if len(self.trail)>1000:
+        if len(self.trail)>10000000000:
             self.trail.pop(0)
         self.trail.append((self.x,self.y))
+        # print(self.x,self.y)
 
     def draw(self):
         pygame.draw.line(win,WHITE,(int(self.x),int(self.y)),(int(self.x),int(self.y)))
@@ -87,7 +91,10 @@ def create_rays(black_hole):
         rays.append(Ray(0,0,black_hole,(1.0,3.0+y*0.25)))
 
 def create_ray_one(black_hole):
-    rays.append(Ray(WIDTH//6,HEIGHT//5,black_hole,(1.0,3.0)))
+    rays.append(Ray(0,HEIGHT//6,black_hole,(1.0,0.0)))
+    rays.append(Ray(WIDTH,5*HEIGHT//6,black_hole,(-1.0,0.0)))
+    rays.append(Ray(WIDTH//5,0,black_hole,(0.0,1.0)))
+    rays.append(Ray(4*WIDTH//5,HEIGHT,black_hole,(0.0,-1.0)))
 
 def create_rays_horizontal(black_hole, y_step=10):
     for y in range(0, HEIGHT, y_step):
@@ -164,7 +171,7 @@ def rk4_step(ray, black_hole, dlambda):
     ray.dphi+=(dlambda/6.0)*(k1[3]+2.0*k2[3]+2.0*k3[3]+k4[3])
 
 def main():
-    bl = BlackHole(WIDTH//2, HEIGHT//2, 200000*SOLAR_MASS)
+    bl = BlackHole(WIDTH//2, HEIGHT//2, 50000*SOLAR_MASS)
     create_ray_one(bl)
     running = True
     clock = pygame.time.Clock()
@@ -178,13 +185,13 @@ def main():
         bl.draw()
 
         for ray in rays[:]:
-            rk4_step(ray, bl, 1e-2)
+            rk4_step(ray, bl, 1e-3)
             ray.move(bl,0)
             ray.draw()
             
             off_screen = ray.x>WIDTH or ray.x<0 or ray.y<0 or ray.y>HEIGHT
             if off_screen:
-                # print("off_screen")
+                print("off_screen")
                 rays.remove(ray)
         pygame.display.update()
     
