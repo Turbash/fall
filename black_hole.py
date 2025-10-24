@@ -11,7 +11,7 @@ pygame.display.set_caption("Black Hole Simulation")
 G=6.67430e-11
 SOLAR_MASS=1.98847e30
 
-METERS_PER_PIXEL = 5*1e7
+METERS_PER_PIXEL = 5*1e6
 C_PX=299792458.0/METERS_PER_PIXEL
 C_SI=299792458.0
 
@@ -86,6 +86,9 @@ def create_rays(black_hole):
     for y in y_pos:
         rays.append(Ray(0,0,black_hole,(1.0,3.0+y*0.25)))
 
+def create_ray_one(black_hole):
+    rays.append(Ray(WIDTH//6,HEIGHT//5,black_hole,(1.0,3.0)))
+
 def create_rays_horizontal(black_hole, y_step=10):
     for y in range(0, HEIGHT, y_step):
         rays.append(Ray(0, y, black_hole, (1.0, 0.0)))
@@ -110,6 +113,9 @@ def create_rays_radial(black_hole, count=72, radius=300):
 
 def geodesic(ray, rhs,r_s_m):
     
+    dphi = max(min(ray.dphi, 1e6), -1e6)
+    dr = ray.dr
+
     r_px = max(ray.r, 1e-6)
     r_m = r_px * METERS_PER_PIXEL
 
@@ -117,14 +123,12 @@ def geodesic(ray, rhs,r_s_m):
 
     term_px = term_m / METERS_PER_PIXEL
 
-    radial_acc_px = ray.r * (ray.dphi ** 2) - term_px
+    radial_acc_px = ray.r * (dphi ** 2) - term_px
 
-    angular_acc = -2.0 * ray.dr * ray.dphi / max(ray.r, 1e-6)
+    angular_acc = -2.0 * dr * dphi / max(ray.r, 1e-6)
 
     # ray.d2r = radial_acc_px
     # ray.d2phi = angular_acc
-    dphi = ray.dphi
-    dr = ray.dr
     rhs.clear()
     rhs.extend([dr,dphi,radial_acc_px,angular_acc])
 
@@ -133,6 +137,8 @@ def add_state(a,b,factor,out):
     out.extend([a[i]+factor*b[i] for i in range(4)])
 
 def rk4_step(ray, black_hole, dlambda):
+    if(ray.r < black_hole.r_px):
+        return
     y0=[ray.r, ray.phi, ray.dr, ray.dphi]
     k1,k2,k3,k4,temp=[],[],[],[],[]
 
@@ -158,8 +164,8 @@ def rk4_step(ray, black_hole, dlambda):
     ray.dphi+=(dlambda/6.0)*(k1[3]+2.0*k2[3]+2.0*k3[3]+k4[3])
 
 def main():
-    bl = BlackHole(WIDTH//2, HEIGHT//2, 1000000*SOLAR_MASS)
-    create_rays_horizontal(bl)
+    bl = BlackHole(WIDTH//2, HEIGHT//2, 200000*SOLAR_MASS)
+    create_ray_one(bl)
     running = True
     clock = pygame.time.Clock()
     while running:
@@ -172,10 +178,10 @@ def main():
         bl.draw()
 
         for ray in rays[:]:
-            rk4_step(ray, bl, 1e-1)
-            ray.draw()
+            rk4_step(ray, bl, 1e-2)
             ray.move(bl,0)
-
+            ray.draw()
+            
             off_screen = ray.x>WIDTH or ray.x<0 or ray.y<0 or ray.y>HEIGHT
             if off_screen:
                 # print("off_screen")
