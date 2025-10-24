@@ -7,6 +7,10 @@ WIDTH, HEIGHT = 800, 600
 FPS=60
 win = pygame.display.set_mode((WIDTH,HEIGHT))
 pygame.display.set_caption("Black Hole Simulation")
+pygame.mixer.init()
+
+pygame.mixer.music.load("black_hole_ambience.mp3")
+pygame.mixer.music.play(-1)
 
 G=6.67430e-11
 SOLAR_MASS=1.98847e30
@@ -22,7 +26,7 @@ RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 
 
-BG = pygame.transform.scale(pygame.image.load("background.jpg"),(WIDTH, HEIGHT))
+BG = pygame.transform.scale(pygame.image.load("splash1.jpg"),(WIDTH, HEIGHT))
 
 class BlackHole:
     def __init__(self,x,y,mass):
@@ -90,11 +94,10 @@ def create_rays(black_hole):
     for y in y_pos:
         rays.append(Ray(0,0,black_hole,(1.0,3.0+y*0.25)))
 
-def create_ray_one(black_hole):
-    rays.append(Ray(0,HEIGHT//6,black_hole,(1.0,0.0)))
-    rays.append(Ray(WIDTH,5*HEIGHT//6,black_hole,(-1.0,0.0)))
-    rays.append(Ray(WIDTH//5,0,black_hole,(0.0,1.0)))
-    rays.append(Ray(4*WIDTH//5,HEIGHT,black_hole,(0.0,-1.0)))
+def create_ray_one(black_hole,mx,my,location):
+    dir_x=mx-location[0]
+    dir_y=my-location[1]
+    rays.append(Ray(location[0], location[1], black_hole, (dir_x, dir_y)))
 
 def create_rays_horizontal(black_hole, y_step=10):
     for y in range(0, HEIGHT, y_step):
@@ -171,18 +174,35 @@ def rk4_step(ray, black_hole, dlambda):
     ray.dphi+=(dlambda/6.0)*(k1[3]+2.0*k2[3]+2.0*k3[3]+k4[3])
 
 def main():
-    bl = BlackHole(WIDTH//2, HEIGHT//2, 50000*SOLAR_MASS)
-    create_ray_one(bl)
+    bl = BlackHole(WIDTH//2, HEIGHT//2, 41200*SOLAR_MASS)
     running = True
     clock = pygame.time.Clock()
+    temp_ray_pos = None
     while running:
         clock.tick(FPS)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
 
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if temp_ray_pos is not None:
+                    mx,my=pygame.mouse.get_pos()
+                    if  math.hypot(temp_ray_pos[0]-bl.x,temp_ray_pos[1]-bl.y) < bl.r_px:
+                        temp_ray_pos=None
+                        print(mx,my,bl.x,bl.y,bl.r_px)
+                    else:
+                        create_ray_one(bl,mx,my,temp_ray_pos)
+                    temp_ray_pos=None
+                else:
+                    temp_ray_pos=pygame.mouse.get_pos()
+
         win.blit(BG, (0, 0))
-        bl.draw()
+
+        if temp_ray_pos is not None:         
+            pygame.draw.line(win, RED, temp_ray_pos,temp_ray_pos, 1)
+            pygame.draw.line(win, BLUE, temp_ray_pos, pygame.mouse.get_pos(),2)
+
+        # bl.draw()
 
         for ray in rays[:]:
             rk4_step(ray, bl, 1e-3)
