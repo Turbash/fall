@@ -78,6 +78,11 @@ def create_main_menu():
                                     text="In simulation: Press [ESC] to return to menu.",
                                     manager=manager,
                                     object_id="#info_label"),
+
+        pygame_gui.elements.UILabel(relative_rect=pygame.Rect((0, 50), (800, 40)),
+                                    text="In simulation: Click with mouse to start a light ray. Click again in the direction you want the light ray to move initially.",
+                                    manager=manager,
+                                    object_id="#info_label")
     ]
 
 def destroy_main_menu():
