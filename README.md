@@ -2,7 +2,19 @@
 
 ## A pygame simulator to showcase the physics that works around black holes
 
-This is a physics simulator to show the physics that works around a back hole in as much detail as possible. Still in development.
+This is a physics simulator to show the physics that works around a back hole in as much detail as possible. Developed with inspiration from youtube tutorials.
+
+- You can choose between two modes: interstellar and custom
+
+- in interstellar, mode u will see a fixed size black hole.
+
+- in cutom mode, u can change the mass of the black hole and metres per pixel of the simulation from settings
+
+- in both the modes, you can generate light rays in ur desired directions
+
+- there is interstellar background music playing in the background.
+
+- overall a cool experience too see how light will be effected near a black hole.
 
 ## Requirements
 
